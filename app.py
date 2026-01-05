@@ -56,7 +56,7 @@ body {
 """, unsafe_allow_html=True)
 
 # -------------------- GEMINI + LANGCHAIN --------------------
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
 llm = ChatGoogleGenerativeAI(
     model="models/gemini-2.5-flash",
@@ -234,4 +234,5 @@ Generate a short 110 words factual summary for therapist preparation.
 
         st.markdown("---")
         st.caption("TheraLink AI — Human-Centric Clinical Triage (Prototype)")
+
 
