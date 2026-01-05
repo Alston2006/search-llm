@@ -1,17 +1,11 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import os
-from dotenv import load_dotenv
 
 import google.generativeai as genai
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
 
 # -------------------- CONFIG --------------------
-load_dotenv()
-
 st.set_page_config(
     page_title="TheraLink AI",
     page_icon="🧠",
@@ -57,11 +51,13 @@ body {
 
 # -------------------- GEMINI + LANGCHAIN --------------------
 API_KEY = st.secrets["GOOGLE_API_KEY"]
+
 genai.configure(api_key=API_KEY)
 
 llm = ChatGoogleGenerativeAI(
     model="models/gemini-2.5-flash",
-    temperature=0.2
+    temperature=0.2,
+    google_api_key=API_KEY
 )
 
 # -------------------- QUESTIONS --------------------
@@ -163,7 +159,6 @@ if role == "Doctor":
             overview_df["Patient ID"]
         )
 
-        st.session_state["selected_patient"] = selected
         pdata = patients[selected]
         history = pd.DataFrame(pdata["history"])
 
@@ -189,29 +184,27 @@ if role == "Doctor":
                 st.markdown("<span class='badge-green'>GREEN ZONE</span>", unsafe_allow_html=True)
             st.metric("Wellness Score", latest_score)
 
-        # -------- AI SUMMARY --------
+        # -------- AI SUMMARY (OPTION A – FIXED) --------
         st.markdown("### 🧾 Session Prep Summary")
 
-        prompt = PromptTemplate(
-            input_variables=["score"],
-            template="""
+        summary_prompt = f"""
 You are an AI clinical assistant supporting a licensed mental health professional.
 
-Rules:
+STRICT RULES:
 - No diagnosis
 - No advice
-- Neutral language
+- Neutral, factual language only
+- Do NOT speak to the patient
 
-Data:
-Average wellness score today: {score}
+DATA:
+Average wellness score today: {latest_score} (scale 1–5)
 
-Task:
-Generate a short 110 words factual summary for therapist preparation.
+TASK:
+Write a concise (~110 words) factual summary highlighting observable patterns
+for therapist session preparation.
 """
-        )
 
-        chain = LLMChain(llm=llm, prompt=prompt)
-        summary = chain.run(score=latest_score)
+        summary = llm.invoke(summary_prompt).content
         st.info(summary)
 
         # -------- DOCTOR VERIFICATION --------
@@ -235,6 +228,4 @@ Generate a short 110 words factual summary for therapist preparation.
 
         st.markdown("---")
         st.caption("TheraLink AI — Human-Centric Clinical Triage (Prototype)")
-
-
 
